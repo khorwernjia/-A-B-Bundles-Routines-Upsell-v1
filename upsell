@@ -1,0 +1,195 @@
+// [Personalization] [Menu] Account Accessibility & Rewards Clarity
+
+(() => {
+  if (window.mobileMenuMyAccountParent) return;
+  window.mobileMenuMyAccountParent = true;
+
+  const ICON_ACCORDION =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="9.061" height="5.591" viewBox="0 0 9.061 5.591"><path d="M-11745.433-5815.2l4,4,4-4" transform="translate(11745.963 5815.731)" fill="none" stroke="#231d1d" stroke-width="1.5"></path></svg>';
+
+  function findYourAccountSection() {
+    const menuEachs = document.querySelectorAll(
+      ".mobile-menu .dropdown-3 .menu-each"
+    );
+    for (const el of menuEachs) {
+      const h6 = el.querySelector("h6");
+      if (h6 && h6.textContent.trim() === "Your Account") {
+        return el;
+      }
+    }
+    return null;
+  }
+
+  function findDropdown2CtaSection() {
+    const dropdown3 = document.querySelector(".mobile-menu .dropdown-3");
+    if (!dropdown3) return null;
+    const parent = dropdown3.closest(".mobile-menu-dropdown");
+    if (!parent) return null;
+    const dropdown2List = parent.querySelectorAll(
+      ".dropdown-main-wrapper.dropdown-2"
+    );
+    for (const el of dropdown2List) {
+      if (el.querySelector(".cta-container")) return el;
+    }
+    return null;
+  }
+
+  function addStyles() {
+    if (document.getElementById("experiment-mobile-menu-my-account-style"))
+      return;
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      `
+        <style id="experiment-mobile-menu-my-account-style">
+          .mobile-menu .mobile-menu-dropdown.experiment-my-account-dropdown {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+          }
+          .mobile-menu li.experiment-my-account-active .mobile-menu-dropdown.experiment-my-account-dropdown {
+            max-height: 900px;
+          }
+          .mobile-menu .experiment-my-account-trigger .icon {
+            transition: transform 0.3s ease;
+          }
+          .mobile-menu li.experiment-my-account-active .experiment-my-account-trigger {
+            pointer-events: auto;
+          }
+          .mobile-menu li.experiment-my-account-active .experiment-my-account-trigger .icon {
+            transform: rotate(180deg);
+          }
+          .mobile-menu .experiment-my-account-parent .experiment-my-account-trigger,
+          .mobile-menu .experiment-my-account-dropdown a {
+            white-space: nowrap;
+          }
+          .mobile-menu .dropdown-3 a {
+            white-space: nowrap;
+          }
+          .mobile-menu .experiment-my-account-dropdown .dropdown-2,
+          .mobile-menu .experiment-my-account-dropdown .dropdown-2 a {
+            white-space: normal;
+          }
+          .mobile-menu .experiment-my-account-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .mobile-menu .experiment-rewards-teaser {
+            background-color: #e8e8e8;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 14px;
+            white-space: nowrap;
+          }
+        </style>
+      `
+    );
+  }
+
+  function addMyAccountParent() {
+    const mobileMenu = document.querySelector(".mobile-menu-wrapper .mobile-menu");
+
+    if (!mobileMenu) return false;
+
+    if (document.querySelector(".mobile-menu .experiment-my-account-parent")) {
+      return true;
+    }
+
+    const li = document.createElement("li");
+    li.className =
+      "parent pt-20 bb-1 b-silver with-children experiment-my-account-parent";
+
+    li.innerHTML = `
+      <a
+        class="main-menu-title accordion-title flex jc-between ai-center pl-20 pr-20 t-pr-30 t-pr-30 mb-20 experiment-my-account-trigger"
+        style="cursor: pointer;"
+        role="button"
+        tabindex="0"
+        aria-expanded="false">
+        <span class="text p2 bold-500 flex ai-center experiment-my-account-title-row">
+          <span>My Account</span>
+          <span class="experiment-rewards-teaser p4">Earn points and claim rewards</span>
+        </span>
+        <span class="icon">${ICON_ACCORDION}</span>
+      </a>
+      <div class="mobile-menu-dropdown relative experiment-my-account-dropdown experiment-my-account-content">
+      </div>
+    `;
+
+    const contentWrapper = li.querySelector(".experiment-my-account-content");
+    const yourAccountSection = findYourAccountSection();
+    const dropdown2Section = findDropdown2CtaSection();
+
+    const dropdown3Wrapper = document.createElement("div");
+    dropdown3Wrapper.className =
+      "dropdown-main-wrapper dropdown-3 global-flex flex-wrap bg-lightgrey pt-25 pb-25 pl-20 pr-20";
+    dropdown3Wrapper.innerHTML = `
+      <div class="row width-100">
+        <div class="menu-wrapper global-flex flex-wrap width-100"></div>
+      </div>
+    `;
+    const menuWrapper = dropdown3Wrapper.querySelector(".menu-wrapper");
+
+    if (yourAccountSection) {
+      menuWrapper.appendChild(yourAccountSection.cloneNode(true));
+      yourAccountSection.remove();
+    } else {
+      menuWrapper.innerHTML = `
+        <div class="menu-each col-6 mt-25">
+          <h6 class="p2 bold-500 mb-15 dropdown-menu-title-m">Your Account</h6>
+          <ul>
+            <li class="show-m mb-15"><a href="/account" class="p2 show-m-inline-block">Order History</a></li>
+            <li class="show-m mb-15"><a href="/account/addresses" class="p2 show-m-inline-block">Address Book</a></li>
+            <li class="show-m"><a href="/account/logout" class="p2 show-m-inline-block">Log out</a></li>
+          </ul>
+        </div>
+      `;
+    }
+
+    contentWrapper.appendChild(dropdown3Wrapper);
+
+    if (dropdown2Section) {
+      contentWrapper.appendChild(dropdown2Section.cloneNode(true));
+      dropdown2Section.remove();
+    }
+
+    const trigger = li.querySelector(".experiment-my-account-trigger");
+    const toggleMyAccountMenu = (e) => {
+      e.preventDefault();
+      const isActive = li.classList.toggle("experiment-my-account-active");
+      trigger.classList.toggle("active", isActive);
+      trigger.setAttribute("aria-expanded", String(isActive));
+      trigger.blur();
+    };
+
+    trigger.addEventListener("click", toggleMyAccountMenu);
+    trigger.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        toggleMyAccountMenu(e);
+      }
+    });
+
+    mobileMenu.appendChild(li);
+
+    return true;
+  }
+
+  function init() {
+    addStyles();
+    if (addMyAccountParent()) return;
+    let count = 0;
+    const interval = setInterval(() => {
+      count++;
+      if (addMyAccountParent() || count >= 20) {
+        clearInterval(interval);
+      }
+    }, 100);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+})();
