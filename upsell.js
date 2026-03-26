@@ -369,9 +369,14 @@
       });
     }
 
-    cartJsFetchInFlight = attemptFetch(0).finally(() => {
-      cartJsFetchInFlight = null;
-    });
+    cartJsFetchInFlight = attemptFetch(0)
+      .catch((err) => {
+        console.warn("Cart fetch error:", err);
+        return { items: [] }; 
+      })
+      .finally(() => {
+        cartJsFetchInFlight = null;
+      });
 
     return cartJsFetchInFlight;
   }
