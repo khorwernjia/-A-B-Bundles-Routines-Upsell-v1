@@ -1,8 +1,10 @@
-// [A/B] Bundles & Routines Upsell
+// [A/B] Bundles & Routines Upsell (core)
 
 (() => {
-  if (window.abBundlesRoutinesUpsellApplied) return;
-  window.abBundlesRoutinesUpsellApplied = true;
+  const existing = window.abBundlesRoutinesUpsell;
+  if (existing && typeof existing.init === "function") return;
+
+  const api = (existing && typeof existing === "object") ? existing : {};
 
   const STYLE_ID = "ab-bundles-routines-upsell-style";
   const ROOT_CLASS = "ab-bundles-upsell-root";
@@ -1069,10 +1071,15 @@
   }
 
   function init() {
+    if (window.abBundlesRoutinesUpsellApplied) return;
+    window.abBundlesRoutinesUpsellApplied = true;
+
     addStyles();
     document.addEventListener("click", handleRootClick);
     observeDrawer();
   }
 
-  init();
+  api.init = init;
+  window.abBundlesRoutinesUpsell = api;
 })();
+
