@@ -15,20 +15,15 @@
     eye:           "eye-contour-lifting-cream-15ml",
     rnc:           "recovery-night-complex-us",
     starterBundle: "starter-bundle-kit-us",
-    // Starter sizes are variants on the same product as full-size MAC/RHC.
-    // We fetch the parent product and select the starter variant by title.
     starterMac:    "multi-action-cream-us",
     starterRhc:    "restorative-hydration-cream-us",
   };
 
-  // Variant title keywords that identify the starter size within a shared product
   const STARTER_VARIANT_KEYWORDS = {
     starterMac: ["20g", "starter"],
     starterRhc: ["20g", "starter"],
   };
 
-  // Each alias group is mutually exclusive — no handle appears in more than one group.
-  // starterMac/starterRhc handles have been removed from mac/rhc respectively.
   const HANDLE_ALIASES = {
     serum: [
       "professional-serum-sale",
@@ -207,7 +202,6 @@
 
     .${ROOT_CLASS}__button[disabled] {
       opacity: 0.65;
-      cursor: wait;
     }
 
     .${ROOT_CLASS}__button-label,
@@ -291,8 +285,6 @@
     return items.some((item) => aliases.includes(normaliseHandle(item.handle)));
   }
 
-  // For starter sizes: same product handle as full-size, so we match on
-  // handle AND variant title containing a starter-specific keyword.
   function hasStarterCartItem(items, def) {
     return items.some((item) => {
       const handle = normaliseHandle(item.handle);
@@ -302,7 +294,6 @@
     });
   }
 
-  // Returns true if any cart item has a subscription selling plan attached
   function cartHasSubscription(items) {
     return items.some((item) => item.selling_plan_allocation != null);
   }
@@ -330,9 +321,6 @@
   function fetchProduct(handle, attempt) {
     if (!handle) return Promise.resolve(null);
 
-    // Return cached promise if already resolved or in-flight.
-    // Only a confirmed 404 clears the cache — transient errors retry up to 3 times
-    // with a short delay so a single network blip never hides the section.
     if (productCache[handle]) return productCache[handle];
 
     const attemptNumber = attempt || 1;
@@ -343,7 +331,6 @@
     )
       .then((response) => {
         if (response.status === 404) {
-          // Genuine missing product — cache null permanently so we stop retrying
           console.warn("[A/B] Upsell: product not found:", handle);
           return null;
         }
@@ -351,7 +338,6 @@
         return response.json();
       })
       .catch((err) => {
-        // Transient error — clear cache and retry up to 3 times with backoff
         delete productCache[handle];
         if (attemptNumber < 3) {
           const delay = 300 * attemptNumber;
@@ -431,8 +417,6 @@
     }) || null;
   }
 
-  // Builds a card: products[0] = trigger (already in cart, display only)
-  //                products[1] = missing (added to cart on CTA click)
   function buildComboCard(id, triggerProduct, missingProduct, options) {
     if (!triggerProduct) { console.warn("[A/B] Upsell: trigger product not found for combo", id); return null; }
     if (!missingProduct) { console.warn("[A/B] Upsell: missing product not found for combo", id); return null; }
@@ -454,8 +438,6 @@
       action: "add-missing",
       products: [triggerProduct, missingProduct],
       selectedVariantIds: [triggerVariant.id, missingVariant.id],
-      // All combos show a static label pill — no variant selector on any combo.
-      // Each missing product has exactly one correct variant to add.
       variantProductIndex: null,
       missingVariantId: missingVariant.id,
       priceLabel: money(discountedTotal),
@@ -466,19 +448,16 @@
   function buildEligibleCards(cart) {
     const items = cart.items || [];
 
-    // Suppression 1: any subscription in cart
     if (cartHasSubscription(items)) return Promise.resolve([]);
 
     const hasSerum         = hasCartItem(items, HANDLE_ALIASES.serum);
     const hasStarterMac    = hasStarterCartItem(items, HANDLE_ALIASES.starterMac);
     const hasStarterRhc    = hasStarterCartItem(items, HANDLE_ALIASES.starterRhc);
-    // Full-size MAC/RHC: same handle as starter, so exclude starter variants explicitly
     const hasMac           = !hasStarterMac && hasCartItem(items, HANDLE_ALIASES.mac);
     const hasRhc           = !hasStarterRhc && hasCartItem(items, HANDLE_ALIASES.rhc);
     const hasEye           = hasCartItem(items, HANDLE_ALIASES.eye);
     const hasStarterBundle = hasCartItem(items, HANDLE_ALIASES.starterBundle);
 
-    // Suppression 2: a complete bundle pair is already in cart
     const hasBundledPair =
       (hasSerum && hasMac) ||
       (hasEye   && hasSerum) ||
@@ -487,8 +466,6 @@
 
     if (hasStarterBundle || hasBundledPair) return Promise.resolve([]);
 
-    // Starter combos are evaluated FIRST so they always take priority
-    // over full-size combos, even if store handles accidentally match both groups.
     const combos = [
       {
         condition:     hasStarterMac && !hasStarterRhc,
@@ -506,7 +483,6 @@
         triggerKeywords: STARTER_VARIANT_KEYWORDS.starterRhc,
         missingKeywords: STARTER_VARIANT_KEYWORDS.starterMac,
       },
-      // Full-size combos — only fire when no starter size is in cart
       {
         condition:     hasSerum && !hasMac && !hasStarterMac,
         id:            "serum-mac",
@@ -536,7 +512,6 @@
     const eligible = combos.filter((c) => c.condition);
     if (!eligible.length) return Promise.resolve([]);
 
-    // Only show the first matching combo
     const first = eligible[0];
 
     return Promise.all([
@@ -556,7 +531,6 @@
   // ---------------------------------------------------------------------------
 
 
-  // Append Shopify image size parameter to keep product thumbnails small
   function resizedImageUrl(url, size) {
     if (!url) return url;
     return url.replace(/(\.[^.?]+)(\?|$)/, `_${size}x$1$2`);
@@ -643,7 +617,6 @@
     button.setAttribute("aria-busy", String(isLoading));
   }
 
-  // Always adds only the missing product at index 1 — never touches existing cart items
   function getVariantIdsForCard(button) {
     const cardElement = button.closest(`.${ROOT_CLASS}__card`);
     if (!cardElement) return [];
